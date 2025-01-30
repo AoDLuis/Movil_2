@@ -1,0 +1,55 @@
+# Directorios de compilación
+/build/
+/app/build/
+
+# Archivos de configuración de Android Studio
+.idea/
+*.iml
+*.hprof
+
+# Archivos de configuración local del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de configuración de Gradle
+.gradle/
+/local.properties
+
+# Archivos de configuración de distribución
+.cxx/
+.externalNativeBuild/
+captures/
+output.json
+
+# Archivos generados por compiladores
+*.apk
+*.aab
+*.dex
+*.class
+
+# Archivos de depuración
+*.log
+crashlytics-build.properties
+
+# Caché de Kotlin
+.kotlinc/
+
+# Archivos de configuración de Test Coverage
+jacoco/test.exec
+
+# Configuración de versiones en dispositivos Apple
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# Archivos de empaquetamiento de Android
+*.keystore
+
+# Archivos de configuración de lint
+/lint/intermediates/
+
+# Carpetas temporales
+/intermediates/
+/outputs/
+/tmp/
