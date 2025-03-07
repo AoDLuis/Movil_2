@@ -1,22 +1,21 @@
 package com.example.broadcastreceiver_telefona
 
-import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import android.Manifest
+import androidx.activity.viewModels
+import com.example.broadcastreceiver_telefona.ViewModel.AutoReplyViewModel
+import com.example.broadcastreceiver_telefona.ui.Screens.MainScreen
+import dagger.hilt.android.AndroidEntryPoint
 
-
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
             val allGranted = results.all { it.value }
@@ -25,11 +24,13 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+    private val viewModel: AutoReplyViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         requestPermissions()
         super.onCreate(savedInstanceState)
         setContent {
-            AutoReplyApp(this)
+            MainScreen(viewModel)
         }
     }
 
@@ -49,56 +50,4 @@ class MainActivity : ComponentActivity() {
             requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
         }
     }
-
-}
-
-@Composable
-fun AutoReplyApp(context: Context) {
-    val sharedPreferences = context.getSharedPreferences("AutoReplyPrefs", Context.MODE_PRIVATE)
-
-    var number by remember { mutableStateOf(sharedPreferences.getString("savedNumber", "") ?: "") }
-    var message by remember { mutableStateOf(sharedPreferences.getString("savedMessage", "") ?: "") }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        TextField(
-            value = number,
-            onValueChange = { number = it },
-            label = { Text("Numero de telefono") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        TextField(
-            value = message,
-            onValueChange = { message = it },
-            label = { Text("Mensaje automatico") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = {
-                if (number.isNotEmpty() && message.isNotEmpty()) {
-                    sharedPreferences.edit().apply {
-                        putString("savedNumber", number)
-                        putString("savedMessage", message)
-                        apply()
-                    }
-                    Toast.makeText(context, "Configuracion guardada", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, "Ingrese un numero y mensaje", Toast.LENGTH_SHORT).show()
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Guardar")
-        }
-    }
-
-
-
-
-
 }
