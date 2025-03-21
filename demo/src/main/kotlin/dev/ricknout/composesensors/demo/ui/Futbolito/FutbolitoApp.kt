@@ -1,5 +1,6 @@
 package dev.ricknout.composesensors.demo.ui.Futbolito
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,11 +17,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.ricknout.composesensors.accelerometer.rememberAccelerometerSensorValueAsState
 import kotlin.math.abs
 
@@ -43,77 +49,86 @@ fun FutbolitoApp() {
     // Dimensión del radio de la pelota
     val radius = with(density) { 20.dp.toPx() }
 
-    // Acceso al acelerómetro
+    // ----------------------- Acceso al acelerometro -----------------------------------------------------------
     val sensorValue by rememberAccelerometerSensorValueAsState()
     val (x, y, _) = sensorValue.value
 
-    // Actualizar posición de la pelota y manejar rebotes
     LaunchedEffect(sensorValue) {
-        // Ajustar la velocidad según el acelerómetro (invierte eje x para orientación)
-        velocityX = -x * 30 // Ajustar sensibilidad y dirección
-        velocityY = y * 30
+        // Ajustar la velocidad según el acelerómetro
+        velocityX += -x * 2 // Reducimos el factor para mayor control
+        velocityY += y * 2
 
-        // Actualizar posición de la pelota
-        ballPosition = Offset(
-            x = ballPosition.x + velocityX,
-            y = ballPosition.y + velocityY
-        )
+        var newX = ballPosition.x + velocityX
+        var newY = ballPosition.y + velocityY
 
-        // Manejar rebotes en los bordes
-        if (ballPosition.x <= radius) {
-            velocityX = abs(velocityX) // Rebota hacia la derecha
-            ballPosition = ballPosition.copy(x = radius) // Ajustar posición dentro de límites
+        // ---------------- Manejo de rebotes ----------------
+        if (newX <= radius) {
+            newX = radius
+            velocityX = -velocityX // Invierte la dirección
+        } else if (newX >= width - radius) {
+            newX = width - radius
+            velocityX = -velocityX
         }
-        if (ballPosition.x >= width - radius) {
-            velocityX = -abs(velocityX) // Rebota hacia la izquierda
-            ballPosition = ballPosition.copy(x = width - radius)
+
+        if (newY <= radius) {
+            newY = radius
+            velocityY = -velocityY
+        } else if (newY >= height - radius) {
+            newY = height - radius
+            velocityY = -velocityY
         }
-        if (ballPosition.y <= radius) {
-            velocityY = abs(velocityY) // Rebota hacia abajo
-            ballPosition = ballPosition.copy(y = radius)
-        }
-        if (ballPosition.y >= height - radius) {
-            velocityY = -abs(velocityY) // Rebota hacia arriba
-            ballPosition = ballPosition.copy(y = height - radius)
-        }
+
+        // Actualizar la posición con los valores corregidos
+        ballPosition = Offset(newX, newY)
 
         // Detectar goles
-        if (ballPosition.y <= radius && ballPosition.x in (width / 2 - 100)..(width / 2 + 100)) {
-            scoreTop++ // Gol superior
-            resetBall(width, height).let { ballPosition = it } // Reiniciar pelota
+        if (newY <= radius && newX in (width / 2 - 100)..(width / 2 + 100)) {
+            scoreTop++
+            ballPosition = resetBall(width, height)
             velocityX = 0f
             velocityY = 0f
         }
-        if (ballPosition.y >= height - radius && ballPosition.x in (width / 2 - 100)..(width / 2 + 100)) {
-            scoreBottom++ // Gol inferior
-            resetBall(width, height).let { ballPosition = it } // Reiniciar pelota
+        if (newY >= height - radius && newX in (width / 2 - 100)..(width / 2 + 100)) {
+            scoreBottom++
+            ballPosition = resetBall(width, height)
             velocityX = 0f
             velocityY = 0f
         }
     }
 
-    // Interfaz de usuario
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Marcador
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF1B5E20)), // Color de fondo estilo cancha
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // **Marcador con diseño mejorado**
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(16.dp)
+                .background(Color(0xFF0D47A1), shape = RoundedCornerShape(12.dp))
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Text("Superior: $scoreTop", style = MaterialTheme.typography.headlineMedium)
-            Text("Inferior: $scoreBottom", style = MaterialTheme.typography.headlineMedium)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Superior", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("$scoreTop", color = Color.Yellow, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Inferior", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("$scoreBottom", color = Color.Yellow, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+            }
         }
 
-        // Cancha
+        // **Cancha con la pelota**
         Box(modifier = Modifier.fillMaxSize()) {
             Cancha(
-                ballPosition = ballPosition,
-                scoreTop = scoreTop,
-                scoreBottom = scoreBottom
+                ballPosition = ballPosition
             )
         }
     }
+
 }
 
 // Función para reiniciar la posición de la pelota
@@ -122,21 +137,3 @@ fun resetBall(width: Float, height: Float): Offset {
 }
 
 
-
-//// Manejar rebotes en los bordes
-//if (ballPosition.x <= radius) {
-//    velocityX = -abs(velocityX) * 0.8f // Rebota hacia la derecha y reduce velocidad en un 20%
-//    ballPosition = ballPosition.copy(x = radius) // Ajustar posición dentro de límites
-//}
-//if (ballPosition.x >= width - radius) {
-//    velocityX = -abs(velocityX) * 0.8f // Rebota hacia la izquierda y reduce velocidad en un 20%
-//    ballPosition = ballPosition.copy(x = width - radius)
-//}
-//if (ballPosition.y <= radius) {
-//    velocityY = -abs(velocityY) * 0.8f // Rebota hacia abajo y reduce velocidad en un 20%
-//    ballPosition = ballPosition.copy(y = radius)
-//}
-//if (ballPosition.y >= height - radius) {
-//    velocityY = -abs(velocityY) * 0.8f // Rebota hacia arriba y reduce velocidad en un 20%
-//    ballPosition = ballPosition.copy(y = height - radius)
-//}
