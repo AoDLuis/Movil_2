@@ -55,32 +55,32 @@ fun FutbolitoApp() {
 
     LaunchedEffect(sensorValue) {
         // //--------------------------la velocida de la pelota------------------------------------------------
-        velocityX += -x * 5
-        velocityY += y * 5
+        velocityX += -x * 2
+        velocityY += y * 2
 
         var newX = ballPosition.x + velocityX
         var newY = ballPosition.y + velocityY
 
         // ---------------- Manejo de rebotes ----------------
+
+        val dampingFactor = 0.8f //  amortiguacioo para cuando rebote :)
+
         if (newX <= radius) {
             newX = radius
-            velocityX = -velocityX // Invierte la dirección
+            velocityX = -velocityX * dampingFactor
         } else if (newX >= width - radius) {
             newX = width - radius
-            velocityX = -velocityX
+            velocityX = -velocityX * dampingFactor
         }
 
         if (newY <= radius) {
             newY = radius
-            velocityY = -velocityY
+            velocityY = -velocityY * dampingFactor
         } else if (newY + radius >= canchaHeight) {
             newY = canchaHeight - radius
-            velocityY = -velocityY
+            velocityY = -velocityY * dampingFactor
         }
 
-
-
-        //
         ballPosition = Offset(newX, newY)
 
         // ----------------------------- goles ------------------------------------
