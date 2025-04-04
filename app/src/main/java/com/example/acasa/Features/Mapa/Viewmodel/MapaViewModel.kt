@@ -1,0 +1,29 @@
+package com.example.acasa.features.mapa.viewmodel
+
+import android.content.Context
+import android.location.Location
+import android.util.Log
+import androidx.lifecycle.ViewModel
+import com.example.acasa.utils.LocationUtils
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+
+class MapaViewModel : ViewModel() {
+
+    private val _userLocation = MutableStateFlow<Location?>(null)
+    val userLocation: StateFlow<Location?> = _userLocation
+
+    fun fetchUserLocation(context: Context) {
+        LocationUtils.getCurrentLocation(
+            context,
+            onSuccess = { location ->
+                _userLocation.value = location
+            },
+            onError = { e ->
+                Log.e("MapaViewModel", "Error obteniendo ubicación", e)
+            }
+        )
+    }
+
+
+}
