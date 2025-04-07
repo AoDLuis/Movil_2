@@ -1,9 +1,13 @@
 package com.example.acasa.Data.Model
 
 data class RouteResponse(
-    val routes: List<Route>
+    val features: List<Feature>
 )
 
-data class Route(
-    val geometry: String // La ruta codificada en formato GeoJSON
+data class Feature(
+    val geometry: Geometry
+)
+
+data class Geometry(
+    val coordinates: List<List<Double>> // [lng, lat]
 )

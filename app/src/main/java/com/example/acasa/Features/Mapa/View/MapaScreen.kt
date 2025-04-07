@@ -12,6 +12,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.acasa.Data.APICliente
+import com.example.acasa.Data.Model.RouteResponse
 import com.example.acasa.features.mapa.viewmodel.MapaViewModel
 import com.example.acasa.utils.RequestLocationPermission
 import org.osmdroid.config.Configuration
@@ -23,6 +25,9 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.views.overlay.MapEventsOverlay
+import retrofit2.Call
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,13 +86,25 @@ fun MapaScreen(context: Context, mapaViewModel: MapaViewModel = viewModel()) {
                     userLocation?.let { location ->
                         val start = GeoPoint(location.latitude, location.longitude)
                         val end = selectedPoint!!
-                        routePoints = listOf(start, end)
-                        mapView?.overlays?.add(Polyline().apply {
-                            setPoints(routePoints)
-                        })
-                        mapView?.invalidate()
+
+                        fetchRoute(
+                            profile = selectedProfile,
+                            start = start,
+                            end = end,
+                            onResult = { route ->
+                                routePoints = route
+                                mapView?.overlays?.add(Polyline().apply {
+                                    setPoints(route)
+                                })
+                                mapView?.invalidate()
+                            },
+                            onError = { error ->
+                                println("Error al obtener ruta: ${error.message}")
+                            }
+                        )
                     }
                 }
+
             )
         }
     ) { paddingValues ->
@@ -223,5 +240,47 @@ fun SheetContent(
             }
         }
     }
+}
+
+fun fetchRoute(
+    profile: String,
+    start: GeoPoint,
+    end: GeoPoint,
+    onResult: (List<GeoPoint>) -> Unit,
+    onError: (Throwable) -> Unit
+) {
+    val api = APICliente.api
+    val startStr = "${start.longitude},${start.latitude}"
+    val endStr = "${end.longitude},${end.latitude}"
+
+    val call = api.getRoute(
+        profile = profile,
+        apiKey = "5b3ce3597851110001cf62482f324ffbebe74aebb74c3b3a541c2caf",
+        start = startStr,
+        end = endStr
+    )
+
+
+    call.enqueue(object : retrofit2.Callback<RouteResponse> {
+        override fun onResponse(
+            call: Call<RouteResponse>,
+            response: retrofit2.Response<RouteResponse>
+        ) {
+            if (response.isSuccessful) {
+                val coordinates = response.body()
+                    ?.features?.firstOrNull()
+                    ?.geometry?.coordinates ?: emptyList()
+
+                val route = coordinates.map { GeoPoint(it[1], it[0]) }
+                onResult(route)
+            } else {
+                onError(Exception("Error: ${response.code()}"))
+            }
+        }
+
+        override fun onFailure(call: Call<RouteResponse>, t: Throwable) {
+            onError(t)
+        }
+    })
 }
 

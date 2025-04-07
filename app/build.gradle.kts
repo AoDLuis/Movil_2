@@ -8,6 +8,11 @@ android {
     namespace = "com.example.acasa"
     compileSdk = 35
 
+    buildFeatures {
+        buildConfig = true
+        compose = true
+    }
+
     defaultConfig {
         applicationId = "com.example.acasa"
         minSdk = 29
@@ -16,6 +21,16 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+
+        buildConfigField(
+            "String",
+            "OPEN_ROUTE_API_KEY",
+            "\"${project.properties["OPEN_ROUTE_API_KEY"]}\""
+        )
+
+
+
     }
 
     buildTypes {
@@ -34,9 +49,7 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
-    buildFeatures {
-        compose = true
-    }
+
 }
 
 dependencies {
