@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import com.example.acasa.Features.Mapa.View.MainScreen
 import com.example.acasa.features.mapa.view.MapaScreen
 import com.example.acasa.ui.theme.ACasaTheme
 import com.example.acasa.utils.RequestLocationPermission
@@ -30,7 +31,7 @@ class MainActivity : ComponentActivity() {
                 )
 
                 if (hasPermission) {
-                    MapaScreen(this)
+                    MainScreen(context = this)
                 }
             }
         }

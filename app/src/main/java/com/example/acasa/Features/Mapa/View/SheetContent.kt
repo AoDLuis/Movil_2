@@ -98,7 +98,7 @@ fun SheetContent(
                 Text("✖ Cancelar ruta", color = Color.Black)
             }
         }
-        Divider()
+        Divider() //falta que se limpien las instrucciones despues de cancelae la ruta
         if (routeSteps.isNotEmpty()) {
             Text("Instrucciones:", style = MaterialTheme.typography.titleMedium)
 
