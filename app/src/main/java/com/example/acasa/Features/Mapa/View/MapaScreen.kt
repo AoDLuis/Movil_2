@@ -4,6 +4,10 @@ import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,8 +16,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.acasa.Data.APICliente
-import com.example.acasa.Data.Model.RouteResponse
+
+import com.example.acasa.Data.Model.Step
+import com.example.acasa.Features.Mapa.View.SheetContent
 import com.example.acasa.features.mapa.viewmodel.MapaViewModel
 import com.example.acasa.utils.RequestLocationPermission
 import org.osmdroid.config.Configuration
@@ -37,14 +42,16 @@ fun MapaScreen(context: Context, mapaViewModel: MapaViewModel = viewModel()) {
     var selectedPoint by remember { mutableStateOf<GeoPoint?>(null) }
     var isConfirmed by remember { mutableStateOf(false) }
     var routePoints by remember { mutableStateOf<List<GeoPoint>>(emptyList()) }
+    var routeSteps by remember { mutableStateOf<List<Step>>(emptyList()) }
+
+
     var selectedProfile by remember { mutableStateOf("") }
     var mapView: MapView? by remember { mutableStateOf(null) }
 
     val scaffoldState = rememberBottomSheetScaffoldState()
-    val coroutineScope = rememberCoroutineScope()
+    var casaMarker: Marker? = null
 
 
-    var showBottomSheet by remember { mutableStateOf(true) }
 
     RequestLocationPermission(
         context = context,
@@ -87,12 +94,13 @@ fun MapaScreen(context: Context, mapaViewModel: MapaViewModel = viewModel()) {
                         val start = GeoPoint(location.latitude, location.longitude)
                         val end = selectedPoint!!
 
-                        fetchRoute(
+                        mapaViewModel.fetchRoute(
                             profile = selectedProfile,
                             start = start,
                             end = end,
-                            onResult = { route ->
+                            onResult = { route, steps ->
                                 routePoints = route
+                                routeSteps = steps
                                 mapView?.overlays?.add(Polyline().apply {
                                     setPoints(route)
                                 })
@@ -102,9 +110,24 @@ fun MapaScreen(context: Context, mapaViewModel: MapaViewModel = viewModel()) {
                                 println("Error al obtener ruta: ${error.message}")
                             }
                         )
-                    }
-                }
 
+                    }
+                },
+                onResetRoute = {
+                    selectedPoint = null
+                    isConfirmed = false
+                    routePoints = emptyList()
+
+                    casaMarker?.let {
+                        mapView?.overlays?.remove(it)
+                        casaMarker = null
+                    }
+
+                    mapView?.overlays?.removeAll { it is Polyline }
+                    mapView?.invalidate()
+                },
+                routePoints = routePoints,
+                routeSteps = routeSteps //
             )
         }
     ) { paddingValues ->
@@ -112,7 +135,7 @@ fun MapaScreen(context: Context, mapaViewModel: MapaViewModel = viewModel()) {
             .fillMaxSize()
             .padding(paddingValues)
         ) {
-            // Aquí va tu AndroidView con el MapView
+
             AndroidView(factory = { ctx ->
                 Configuration.getInstance().load(ctx, ctx.getSharedPreferences("osmdroid", 0))
                 MapView(ctx).apply {
@@ -132,12 +155,25 @@ fun MapaScreen(context: Context, mapaViewModel: MapaViewModel = viewModel()) {
                                 isConfirmed = false
                                 overlays.removeAll { it is Marker && it.title == "Casa" }
 
+                                casaMarker?.let { overlays.remove(it) }
+
                                 val marker = Marker(this@apply).apply {
                                     position = it
                                     title = "Casa"
                                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                    isDraggable = true
+                                    setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
+                                        override fun onMarkerDragStart(marker: Marker?) {}
+                                        override fun onMarkerDrag(marker: Marker?) {}
+                                        override fun onMarkerDragEnd(marker: Marker?) {
+                                            selectedPoint = marker?.position
+                                            isConfirmed = false
+                                        }
+                                    })
                                 }
+                                casaMarker = marker
                                 overlays.add(marker)
+
                                 invalidate()
                             }
                             return true
@@ -148,139 +184,11 @@ fun MapaScreen(context: Context, mapaViewModel: MapaViewModel = viewModel()) {
                     overlays.add(tapOverlay)
                 }
             }, modifier = Modifier.fillMaxSize())
-        }
-    }
 
-}
-
-@Composable
-fun SegmentedButton(selected: String, onSelect: (String) -> Unit) {
-    val options = listOf(
-        "driving-car" to "Auto",
-        "cycling-regular" to "Moto",
-        "foot-walking" to "A pie"
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        options.forEach { (value, label) ->
-            val selectedColor = if (selected == value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
-            val textColor = if (selected == value) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(4.dp)
-                    .background(selectedColor, shape = MaterialTheme.shapes.medium)
-                    .clickable { onSelect(value) }
-                    .padding(vertical = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = label, color = textColor)
-            }
         }
     }
 }
 
-@Composable
-fun SheetContent(
-    selectedProfile: String,
-    onSelectProfile: (String) -> Unit,
-    selectedPoint: GeoPoint?,
-    isConfirmed: Boolean,
-    onConfirm: () -> Unit,
-    onDrawRoute: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text("¿Cómo te desplazas?", style = MaterialTheme.typography.titleMedium)
-        SegmentedButton(selected = selectedProfile, onSelect = onSelectProfile)
-
-        Divider()
-
-        if (selectedPoint != null && !isConfirmed) {
-            Button(
-                onClick = onConfirm,
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large
-            ) {
-                Text("Confirmar dirección")
-            }
-        }
-
-        if (!isConfirmed) {
-            Text(
-                text = "Toca en el mapa para seleccionar la ubicación de la casa.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
-            )
-        }
-
-        Divider()
-
-        if (isConfirmed && selectedProfile.isNotEmpty()) {
-            Button(
-                onClick = onDrawRoute,
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                )
-            ) {
-                Text("Trazar ruta")
-            }
-        }
-    }
-}
-
-fun fetchRoute(
-    profile: String,
-    start: GeoPoint,
-    end: GeoPoint,
-    onResult: (List<GeoPoint>) -> Unit,
-    onError: (Throwable) -> Unit
-) {
-    val api = APICliente.api
-    val startStr = "${start.longitude},${start.latitude}"
-    val endStr = "${end.longitude},${end.latitude}"
-
-    val call = api.getRoute(
-        profile = profile,
-        apiKey = "5b3ce3597851110001cf62482f324ffbebe74aebb74c3b3a541c2caf",
-        start = startStr,
-        end = endStr
-    )
 
 
-    call.enqueue(object : retrofit2.Callback<RouteResponse> {
-        override fun onResponse(
-            call: Call<RouteResponse>,
-            response: retrofit2.Response<RouteResponse>
-        ) {
-            if (response.isSuccessful) {
-                val coordinates = response.body()
-                    ?.features?.firstOrNull()
-                    ?.geometry?.coordinates ?: emptyList()
-
-                val route = coordinates.map { GeoPoint(it[1], it[0]) }
-                onResult(route)
-            } else {
-                onError(Exception("Error: ${response.code()}"))
-            }
-        }
-
-        override fun onFailure(call: Call<RouteResponse>, t: Throwable) {
-            onError(t)
-        }
-    })
-}
 
