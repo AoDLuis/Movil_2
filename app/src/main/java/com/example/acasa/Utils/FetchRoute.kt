@@ -5,6 +5,8 @@ import com.example.acasa.Data.Model.RouteResponse
 import com.example.acasa.Data.Model.Step
 import org.osmdroid.util.GeoPoint
 import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 
 fun fetchRoute(
@@ -25,11 +27,8 @@ fun fetchRoute(
         end = endStr
     )
 
-    call.enqueue(object : retrofit2.Callback<RouteResponse> {
-        override fun onResponse(
-            call: Call<RouteResponse>,
-            response: retrofit2.Response<RouteResponse>
-        ) {
+    call.enqueue(object : Callback<RouteResponse> {
+        override fun onResponse(call: Call<RouteResponse>, response: Response<RouteResponse>) {
             if (response.isSuccessful) {
                 val feature = response.body()?.features?.firstOrNull()
                 val coordinates = feature?.geometry?.coordinates ?: emptyList()

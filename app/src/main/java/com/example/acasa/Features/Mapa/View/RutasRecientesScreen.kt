@@ -1,67 +1,95 @@
 package com.example.acasa.Features.Mapa.View
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.SnackbarHostState
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import com.example.acasa.Data.Repository.RutasRepository
+import androidx.navigation.NavController
+import com.example.acasa.features.mapa.viewmodel.MapaViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
+import org.osmdroid.util.GeoPoint
 
 @Composable
-fun RutasRecientesScreen(navController: NavHostController) {
-    val rutas = RutasRepository.rutasGuardadas
+fun RutasRecientesScreen(
+    navController: NavController,
+    viewModel: MapaViewModel = viewModel(),
+    scaffoldState: SnackbarHostState = remember { SnackbarHostState() }
+) {
+    var direccion by remember { mutableStateOf("") }
+    val colorScheme = MaterialTheme.colorScheme
+    val typography = MaterialTheme.typography
 
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Rutas Recientes") })
-        }
-    ) { padding ->
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = colorScheme.background
+    ) {
         Column(
             modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            SearchAddressBox(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                onClick = {
-                    // Aquí puedes poner búsqueda real si quieres
+            // Caja de búsqueda editable
+            SearchAddressBoxEditable(
+                text = direccion,
+                onTextChange = { direccion = it },
+                onSearch = {
+                    if (direccion.isNotBlank()) {
+                        viewModel.buscarDireccion(
+                            direccion,
+                            onSuccess = { lat, lon ->
+                                val geoPoint = GeoPoint(lat, lon)
+                                val latStr = geoPoint.latitude.toString().replace(",", ".")
+                                val lonStr = geoPoint.longitude.toString().replace(",", ".")
+                                navController.navigate("mapaScreen/$latStr/$lonStr")
+                            },
+                            onError = {
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    scaffoldState.showSnackbar("Dirección no encontrada.")
+                                }
+                            }
+                        )
+                    }
                 }
             )
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(rutas) { ruta ->
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                navController.navigate(
-                                    "mapa?rutaLat=${ruta.destino.latitude}&rutaLon=${ruta.destino.longitude}"
-                                )
-                            },
-                        shape = MaterialTheme.shapes.medium,
-                        tonalElevation = 2.dp,
-                        color = MaterialTheme.colorScheme.surface
-                    ) {
-                        Text(
-                            text = ruta.descripcion,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    }
+            // Título de rutas recientes
+            if (viewModel.rutasRecientes.isNotEmpty()) {
+                Text(
+                    text = "Rutas recientes",
+                    style = typography.titleMedium,
+                    color = colorScheme.onBackground
+                )
+            }
+
+            // Lista de botones por cada ruta reciente
+            viewModel.rutasRecientes.forEachIndexed { index, ruta ->
+                Button(
+                    onClick = {
+                        val latStr = ruta.destino.latitude.toString().replace(",", ".")
+                        val lonStr = ruta.destino.longitude.toString().replace(",", ".")
+                        navController.navigate("mapaScreen/$latStr/$lonStr")
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorScheme.primary,
+                        contentColor = colorScheme.onPrimary
+                    )
+                ) {
+                    Text(
+                        text = "Ruta ${index + 1}: " +
+                                "Desde (${ruta.inicio.latitude.format(4)}, ${ruta.inicio.longitude.format(4)}) " +
+                                "→ Hasta (${ruta.destino.latitude.format(4)}, ${ruta.destino.longitude.format(4)})"
+                    )
                 }
             }
         }
     }
 }
+
+private fun Double.format(digits: Int) = "%.${digits}f".format(this)

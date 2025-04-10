@@ -54,7 +54,7 @@ android {
 
 dependencies {
 
-    implementation("org.osmdroid:osmdroid-android:6.1.16") // Última versión de OSMdroid
+    implementation("org.osmdroid:osmdroid-android:6.1.16") //  versión de OSMdroid
     implementation("androidx.compose.ui:ui:1.7.8") // Jetpack Compose UI
     implementation("androidx.compose.material:material:1.7.8") // Material Design para Compose
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7") // ViewModel para Compose
@@ -76,6 +76,7 @@ dependencies {
     implementation(libs.ui.tooling)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.material3)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

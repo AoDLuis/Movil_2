@@ -9,7 +9,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.acasa.Data.Model.Ruta
 import com.example.acasa.Data.Model.Step
+import com.example.acasa.Data.Repository.RutasRepository.guardarRuta
 import com.example.acasa.Features.Mapa.View.SearchAddressBox
 import com.example.acasa.Features.Mapa.View.SheetContent
 import com.example.acasa.features.mapa.viewmodel.MapaViewModel
@@ -40,13 +42,11 @@ fun MapaScreen(
     var isConfirmed by remember { mutableStateOf(false) }
     var routePoints by remember { mutableStateOf<List<GeoPoint>>(emptyList()) }
     var routeSteps by remember { mutableStateOf<List<Step>>(emptyList()) }
-
-
     var selectedProfile by remember { mutableStateOf("") }
     var mapView: MapView? by remember { mutableStateOf(null) }
-
     val scaffoldState = rememberBottomSheetScaffoldState()
-    var casaMarker: Marker? = null
+    var casaMarker by remember { mutableStateOf<Marker?>(null) }
+
 
 
 
@@ -73,22 +73,27 @@ fun MapaScreen(
         }
     }
 
+
     LaunchedEffect(destinoMarcado) {
         destinoMarcado?.let { destino ->
-            // Mueve la cámara al destino
+            selectedPoint = destino
+            isConfirmed = false
             mapView?.controller?.setCenter(destino)
 
-            // Añade marcador de destino
+            // Quitar marcador anterior
+            casaMarker?.let { mapView?.overlays?.remove(it) }
+
             val marker = Marker(mapView).apply {
                 position = destino
-                title = "Destino seleccionado"
+                title = "Casa"
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
             }
-
+            casaMarker = marker
             mapView?.overlays?.add(marker)
             mapView?.invalidate()
         }
     }
+
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
@@ -116,22 +121,26 @@ fun MapaScreen(
                                 routePoints = route
                                 routeSteps = steps
 
-                                // Dibuja la ruta en el mapa
+                                // -------------------------------------Dibuja la ruta en el mapa
                                 mapView?.overlays?.add(Polyline().apply {
                                     setPoints(route)
                                 })
                                 mapView?.invalidate()
 
-                                // Guarda la ruta en memoria
-                                val descripcion = "Casa → ${end.latitude}, ${end.longitude}" // Aquí puedes personalizar mejor
-                                com.example.acasa.Data.Repository.RutasRepository.guardarRuta(
-                                    com.example.acasa.Data.Model.Ruta(
+                                // ------------------- Geocodificar ambos puntos
+                                mapaViewModel.obtenerDirecciones(start, end) { dirInicio, dirDestino ->
+                                    val ruta = Ruta(
                                         inicio = start,
                                         destino = end,
-                                        descripcion = descripcion
+                                        direccionInicio = dirInicio,
+                                        direccionDestino = dirDestino
                                     )
-                                )
+
+                                    guardarRuta(ruta)
+                                    mapaViewModel.agregarRutaReciente(ruta)
+                                }
                             },
+
                             onError = { error ->
                                 println("Error al obtener ruta: ${error.message}")
                             }
@@ -144,6 +153,7 @@ fun MapaScreen(
                     selectedPoint = null
                     isConfirmed = false
                     routePoints = emptyList()
+                    routeSteps = emptyList()
 
                     casaMarker?.let {
                         mapView?.overlays?.remove(it)
@@ -163,54 +173,61 @@ fun MapaScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ){
-                AndroidView(factory = { ctx ->
-                    Configuration.getInstance().load(ctx, ctx.getSharedPreferences("osmdroid", 0))
-                    MapView(ctx).apply {
-                        setMultiTouchControls(true)
-                        controller.setZoom(15.0)
-                        mapView = this
+            AndroidView(factory = { ctx ->
+                Configuration.getInstance().load(ctx, ctx.getSharedPreferences("osmdroid", 0))
+                MapView(ctx).apply {
+                    setMultiTouchControls(true)
+                    controller.setZoom(15.0)
+                    mapView = this
 
-                        val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(ctx), this).apply {
-                            enableMyLocation()
-                        }
-                        overlays.add(locationOverlay)
-
-                        val tapOverlay = MapEventsOverlay(object : MapEventsReceiver {
-                            override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
-                                p?.let {
-                                    selectedPoint = it
-                                    isConfirmed = false
-                                    overlays.removeAll { it is Marker && it.title == "Casa" }
-
-                                    casaMarker?.let { overlays.remove(it) }
-
-                                    val marker = Marker(this@apply).apply {
-                                        position = it
-                                        title = "Casa"
-                                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                        isDraggable = true
-                                        setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
-                                            override fun onMarkerDragStart(marker: Marker?) {}
-                                            override fun onMarkerDrag(marker: Marker?) {}
-                                            override fun onMarkerDragEnd(marker: Marker?) {
-                                                selectedPoint = marker?.position
-                                                isConfirmed = false
-                                            }
-                                        })
-                                    }
-                                    casaMarker = marker
-                                    overlays.add(marker)
-
-                                    invalidate()
-                                }
-                                return true
-                            }
-
-                            override fun longPressHelper(p: GeoPoint?) = false
-                        })
-                        overlays.add(tapOverlay)
+                    val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(ctx), this).apply {
+                        enableMyLocation()
                     }
-                }, modifier = Modifier.fillMaxSize()
+                    overlays.add(locationOverlay)
+
+                    val tapOverlay = MapEventsOverlay(object : MapEventsReceiver {
+                        override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
+                            p?.let {
+                                selectedPoint = it
+                                isConfirmed = false
+
+                                // 💥 Limpia la ruta anterior y las instrucciones
+                                routeSteps = emptyList()
+                                routePoints = emptyList()
+                                mapView?.overlays?.removeAll { it is Polyline }
+
+                                // 💥 Borra marcador anterior si existe
+                                overlays.removeAll { it is Marker && it.title == "Casa" }
+                                casaMarker?.let { overlays.remove(it) }
+
+                                // 🧷 Crea nuevo marcador
+                                val marker = Marker(this@apply).apply {
+                                    position = it
+                                    title = "Casa"
+                                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                    isDraggable = true
+                                    setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
+                                        override fun onMarkerDragStart(marker: Marker?) {}
+                                        override fun onMarkerDrag(marker: Marker?) {}
+                                        override fun onMarkerDragEnd(marker: Marker?) {
+                                            selectedPoint = marker?.position
+                                            isConfirmed = false
+                                        }
+                                    })
+                                }
+                                casaMarker = marker
+                                overlays.add(marker)
+                                invalidate()
+                            }
+                            return true
+                        }
+
+
+                        override fun longPressHelper(p: GeoPoint?) = false
+                    })
+                    overlays.add(tapOverlay)
+                }
+            }, modifier = Modifier.fillMaxSize()
             )
 
             // Barra de búsqueda encima, en la parte superior

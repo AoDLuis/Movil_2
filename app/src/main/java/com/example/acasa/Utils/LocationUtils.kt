@@ -26,14 +26,14 @@ object LocationUtils {
         val locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 locationResult.lastLocation?.let { location ->
-                    println("Ubicación actualizada: Lat=${location.latitude}, Lng=${location.longitude}")
+                    println("Ubicacion actualizada: Lat=${location.latitude}, Lng=${location.longitude}")
                     onSuccess(location)
                     fusedLocationClient.removeLocationUpdates(this) // Detiene para ahorrar batería
-                } ?: onError(Exception("Ubicación no encontrada"))
+                } ?: onError(Exception("Ubicacion no encontrada :("))
             }
         }
 
-        // Solicitar actualizaciones activas de ubicación
+        // Solicitar actualizaciones activas de ubicacion
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
     }
 }

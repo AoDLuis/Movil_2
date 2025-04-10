@@ -13,7 +13,7 @@ interface OpenRouteServiceApi {
         @Query("start") start: String,
         @Query("end") end: String,
         @Query("format") format: String = "json",
-        @Query("instructions") instructions: Boolean = true // ✅ importante
+        @Query("instructions") instructions: Boolean = true
     ): Call<RouteResponse>
 
 }
