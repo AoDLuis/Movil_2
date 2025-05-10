@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "836953110839",
+    "project_id": "impmessengingmovil2",
+    "storage_bucket": "impmessengingmovil2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:836953110839:android:555c67d723159bc4e282b2",
+        "android_client_info": {
+          "package_name": "com.example.firebasenotifpush"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-08AwwHQ9TI507tsNYb7WD12DIpTAO2Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:836953110839:android:e3f04d2a856479f5e282b2",
+        "android_client_info": {
+          "package_name": "com.mi.AppNotfPush"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-08AwwHQ9TI507tsNYb7WD12DIpTAO2Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
