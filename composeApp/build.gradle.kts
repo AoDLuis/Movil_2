@@ -21,9 +21,9 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
-    
+
     jvm("desktop")
-    
+
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         moduleName = "composeApp"
@@ -43,16 +43,20 @@ kotlin {
         }
         binaries.executable()
     }
-    
+
     sourceSets {
         val desktopMain by getting
-        
+
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
 
             // Cliente HTTP para Android
             implementation("io.ktor:ktor-client-okhttp:3.1.3")
+            implementation(libs.ktor.client.android)
+
+            implementation("media.kamel:kamel-fetcher-resources-android:1.0.5")
+
         }
         commonMain.dependencies {
 
@@ -65,6 +69,8 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor)
 
             // Ktor para llamadas HTTP
             implementation("io.ktor:ktor-client-core:3.1.3")
@@ -77,6 +83,10 @@ kotlin {
 
             // Carga de imágenes multiplataforma
             implementation("media.kamel:kamel-image:1.0.5")
+            implementation("media.kamel:kamel-decoder-image-bitmap:1.0.5")
+            implementation("media.kamel:kamel-image-default:1.0.5")
+
+
 
 
             // Corrutinas comunes
@@ -91,6 +101,9 @@ kotlin {
 
             // Cliente HTTP para desktop
             implementation("io.ktor:ktor-client-cio:3.1.3")
+            implementation(libs.ktor.client.java)
+            implementation("media.kamel:kamel-fetcher-resources-jvm:1.0.5")
+
         }
     }
 }

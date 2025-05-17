@@ -10,13 +10,22 @@ import androidx.compose.ui.unit.dp
 import org.example.miniproyecto.model.WhoaItem
 import org.example.miniproyecto.network.loadImage
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import io.kamel.core.Resource
 
 @Composable
 fun WhoaCard(item: WhoaItem) {
-    val image = loadImage(item.poster ?: "")
+    val posterUrl = item.poster?.trim().orEmpty()
+
+    // Verificación básica de URL vacía o inválida
+    if (posterUrl.isBlank() || !posterUrl.startsWith("http")) {
+        Text("❌ URL de imagen no válida", color = MaterialTheme.colorScheme.error)
+        println("URL inválida: '$posterUrl'")
+        return
+    }
+
+    val image = loadImage(posterUrl)
+
     Card(
         modifier = Modifier
             .padding(8.dp)
@@ -36,6 +45,7 @@ fun WhoaCard(item: WhoaItem) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fillMaxHeight()
                             .height(180.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -50,16 +60,17 @@ fun WhoaCard(item: WhoaItem) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(180.dp),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Fit
                     )
-                    println("Poster URL: ${item.poster}")
-
+                    println("✅ Imagen cargada correctamente desde: $posterUrl")
                 }
 
                 is Resource.Failure -> {
                     Text("❌ Error al cargar imagen", color = MaterialTheme.colorScheme.error)
+                    println("❌ Error al cargar imagen desde $posterUrl: ${result.exception}")
                 }
             }
+
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
