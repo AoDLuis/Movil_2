@@ -71,6 +71,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
+            implementation("androidx.compose.material3:material3:1.3.2")
+            implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
             // Ktor para llamadas HTTP
             implementation("io.ktor:ktor-client-core:3.1.3")
