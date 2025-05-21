@@ -27,9 +27,6 @@ import org.example.miniproyecto.model.WhoaItem
         suspend fun getRandomWhoas(count: Int): List<WhoaItem> {
             return client.get("https://whoa.onrender.com/whoas/random?results=$count").body()
         }
-
-
-
         suspend fun getRandomWhoa(): WhoaItem {
             return client.get("https://whoa.onrender.com/whoas/random").body<List<WhoaItem>>().first()
         }

@@ -3,6 +3,12 @@ import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
+import java.util.Properties
+import java.io.FileInputStream
+
+val keystorePropertiesFile = project.file("keystore.properties")
+val keystoreProperties = Properties()
+keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 
 plugins {
     alias(libs.plugins.composeMultiplatform)
@@ -59,8 +65,6 @@ kotlin {
 
         }
         commonMain.dependencies {
-
-
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -71,8 +75,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
-            implementation("androidx.compose.material3:material3:1.3.2")
-            implementation("androidx.compose.material:material-icons-extended:1.7.8")
+            //implementation("androidx.compose.material3:material3:1.3.2")
+            //implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
             // Ktor para llamadas HTTP
             implementation("io.ktor:ktor-client-core:3.1.3")
@@ -87,9 +91,6 @@ kotlin {
             implementation("media.kamel:kamel-image:1.0.5")
             implementation("media.kamel:kamel-decoder-image-bitmap:1.0.5")
             implementation("media.kamel:kamel-image-default:1.0.5")
-
-
-
 
             // Corrutinas comunes
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
@@ -114,6 +115,7 @@ android {
     namespace = "org.example.miniproyecto"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
+
     defaultConfig {
         applicationId = "org.example.miniproyecto"
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -121,13 +123,25 @@ android {
         versionCode = 1
         versionName = "1.0"
     }
+
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    signingConfigs {
+        create("release") {
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+        }
+    }
+
     buildTypes {
         getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
         }
     }

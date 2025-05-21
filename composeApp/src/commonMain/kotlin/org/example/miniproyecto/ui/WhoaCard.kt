@@ -17,7 +17,6 @@ import io.kamel.core.Resource
 fun WhoaCard(item: WhoaItem) {
     val posterUrl = item.poster?.trim().orEmpty()
 
-    // Verificación básica de URL vacía o inválida
     if (posterUrl.isBlank() || !posterUrl.startsWith("http")) {
         Text("❌ URL de imagen no válida", color = MaterialTheme.colorScheme.error)
         println("URL inválida: '$posterUrl'")
