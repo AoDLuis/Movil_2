@@ -1,3 +1,4 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -17,6 +18,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
     kotlin("plugin.serialization") version "1.9.10"
+    id("com.github.johnrengelman.shadow") version "7.1.2"
 
 }
 
@@ -111,6 +113,8 @@ kotlin {
     }
 }
 
+
+
 android {
     namespace = "org.example.miniproyecto"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -160,9 +164,38 @@ compose.desktop {
         mainClass = "MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Exe)
             packageName = "org.example.miniproyecto"
             packageVersion = "1.0.0"
         }
+
+        buildTypes.release {
+            proguard {
+                version.set("7.7.0")
+            }
+        }
     }
+
+}
+
+
+        tasks.register<ShadowJar>("shadowJar") {
+            archiveBaseName.set("archivo-original")
+            archiveVersion.set("1.0")
+            archiveClassifier.set("") // para evitar sufijos como "-all"
+
+            // Incluir las clases compiladas del target desktop
+            from(kotlin.targets.getByName("desktop").compilations.getByName("main").output)
+
+            // Incluir dependencias necesarias para ejecución
+            configurations = listOf(project.configurations.getByName("desktopRuntimeClasspath"))
+
+            manifest {
+                attributes["Main-Class"] = "MainKt" // tu clase principal
+            }
+        }
+
+// Opcional: que 'build' dependa de 'shadowJar'
+tasks.named("build") {
+    dependsOn("shadowJar")
 }
